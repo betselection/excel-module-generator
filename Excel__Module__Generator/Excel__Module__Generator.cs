@@ -386,7 +386,7 @@ namespace Excel__Module__Generator
             using (StringReader reader = new StringReader(moduleFileString))
             {
                 // Open file with actual name for writing
-                    using (StreamWriter writer = new StreamWriter(Path.Combine(marshalPaths["framework"], moduleNamespace + ".cs")))
+                using (StreamWriter writer = new StreamWriter(Path.Combine(marshalPaths["framework"], moduleNamespace + ".cs")))
                 {
                     // Variable for current line
                     string currentLine;
@@ -430,6 +430,13 @@ namespace Excel__Module__Generator
             // Wait until it finishes
             compilerProcess.WaitForExit();
 
+            // TODO Use variable for file name. Remove file if needed
+            if (File.Exists(Path.Combine(Path.Combine(Path.Combine(marshalPaths["framework"], this.moduleTypeListBox.SelectedItem.ToString().Replace(" ", string.Empty)), (string)this.marshal.GetType().GetProperty("Game").GetValue(this.marshal, null)), moduleNamespace + ".dll")))
+            {
+                // Remove
+                File.Delete(Path.Combine(Path.Combine(Path.Combine(marshalPaths["framework"], this.moduleTypeListBox.SelectedItem.ToString().Replace(" ", string.Empty)), (string)this.marshal.GetType().GetProperty("Game").GetValue(this.marshal, null)), moduleNamespace + ".dll"));
+            }
+
             // Move generated dll module to proper directory
             File.Move(Path.Combine(marshalPaths["framework"], moduleNamespace + ".dll"), Path.Combine(Path.Combine(Path.Combine(marshalPaths["framework"], this.moduleTypeListBox.SelectedItem.ToString().Replace(" ", string.Empty)), (string)this.marshal.GetType().GetProperty("Game").GetValue(this.marshal, null)), moduleNamespace + ".dll"));    
 
@@ -442,7 +449,10 @@ namespace Excel__Module__Generator
             // Reload modules in framework
             this.marshal.GetType().GetMethod("ReloadModules").Invoke(this.marshal, null);
 
-            // Advice user about successful compilation
+            // Select tab
+            this.marshal.GetType().GetMethod("SelectTab").Invoke(this.marshal, new object[] { this.moduleTypeListBox.SelectedItem.ToString().Replace(" ", string.Empty) });
+
+            // Advise user about successful compilation
             MessageBox.Show("Successful Module Compilation", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
