@@ -439,7 +439,8 @@ namespace Excel__Module__Generator
             // Remove source code file
             File.Delete(Path.Combine(marshalPaths["framework"], moduleNamespace + ".cs"));
 
-            // TODO Send reload message to framework
+            // Reload modules in framework
+            this.marshal.GetType().GetMethod("ReloadModules").Invoke(this.marshal, null);
 
             // Advice user about successful compilation
             MessageBox.Show("Successful Module Compilation", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
