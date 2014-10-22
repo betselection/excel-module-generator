@@ -31,6 +31,7 @@ namespace Excel__Module__Generator
 {
     // Directives
     using System;
+    using System.CodeDom.Compiler;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Drawing;
@@ -39,11 +40,12 @@ namespace Excel__Module__Generator
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Windows.Forms;
+    using Microsoft.CSharp;
 
     /// <summary>
     /// Excel Module Generator class.
     /// </summary>
-    public class Excel__Module__Generator : Form
+    public partial class Excel__Module__Generator : Form
     {
         /// <summary>
         /// The load excel file button.
@@ -306,145 +308,99 @@ namespace Excel__Module__Generator
                 return;
             }
 
-            // Compiler path
-            string compilerPath = string.Empty;
-
             // Module namespace
             string moduleNamespace = this.DisplayNameToNameSpace(Path.GetFileNameWithoutExtension(this.excelFile));
 
             // Fetch paths from marshal
             Dictionary<string, string> marshalPaths = (Dictionary<string, string>)this.marshal.GetType().GetProperty("Paths").GetValue(this.marshal, null);
 
-            // (F)rame(w)ork (lib)rary flag
-            bool fwlib = true;
-
-            // Determine compiler path
-            foreach (string exeFile in System.IO.Directory.GetFiles(Directory.GetParent(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory()).ToString(), "*cs*.exe", SearchOption.AllDirectories))
-            {
-                // Switch possible compiler paths
-                switch (Path.GetFileName(exeFile))
-                {
-                    case "csc.exe": // .net (unified)
-                            // Set as current file
-                        compilerPath = exeFile;
-
-                            // Disable framework library
-                        fwlib = false;
-
-                            // Exit loop
-                        break;
-                    case "mcs.exe": // mono (unified)
-                            // Set as current file
-                        compilerPath = exeFile;
-
-                            // Exit loop
-                        break;
-
-                    case "dmcs.exe": // mono (4.0 mscorlib)
-                            // Set as current file
-                        compilerPath = exeFile;
-
-                            // Exit loop
-                        break;
-
-                    case "smcs.exe": // mono (2.1 mscorlib)
-                            // Set as current file
-                        compilerPath = exeFile;
-
-                            // Exit loop
-                        break;
-
-                    case "gmcs.exe": // mono (2.0 mscorlib)
-                            // Set as current file
-                        compilerPath = exeFile;
-
-                            // Exit loop
-                        break;
-                }
-            }
-
-            // Compiler arguments 
-            string compilerArguments = "/noconfig /nostdlib /nologo /warn:4 /optimize+ /t:library /out:<module_name>.dll /r:mscorlib.dll /r:System.dll /r:System.Windows.Forms.dll /r:ExcelApi.dll /r:OfficeApi.dll /r:VBIDEApi.dll /r:NetOffice.dll /r:System.Drawing.dll" + (fwlib ? " \"/lib:" + System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory() + "\" " : string.Empty) + " <module_name>.cs";
-
-            // Variable for module file string
-            string moduleFileString = string.Empty;
-
-            // Reader for resource stream
-            using (StreamReader reader = new StreamReader(System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Connector.cs")))
-            {
-                // Set module file string
-                moduleFileString = reader.ReadToEnd();
-            }
-
             // Replace <module_name> with actual name
-            moduleFileString = moduleFileString.Replace("<module_name>", moduleNamespace);
+            this.connectorSourceCode[0] = this.connectorSourceCode[0].Replace("<module_name>", moduleNamespace);
 
             // Replace <module_extension> with actual excel file extension
-            moduleFileString = moduleFileString.Replace("<module_extension>", Path.GetExtension(this.excelFile));
+            this.connectorSourceCode[0] = this.connectorSourceCode[0].Replace("<module_extension>", Path.GetExtension(this.excelFile));
 
-            // Connector.cs to StringReader
-            using (StringReader reader = new StringReader(moduleFileString))
-            {
-                // Open file with actual name for writing
-                using (StreamWriter writer = new StreamWriter(Path.Combine(marshalPaths["framework"], moduleNamespace + ".cs")))
-                {
-                    // Variable for current line
-                    string currentLine;
+            // Output assembly file path
+            string assemblyFilePath = Path.Combine(Path.Combine(Path.Combine(marshalPaths["framework"], this.moduleTypeListBox.SelectedItem.ToString().Replace(" ", string.Empty)), (string)this.marshal.GetType().GetProperty("Game").GetValue(this.marshal, null)), moduleNamespace + ".dll");
 
-                    // Iterate reader lines
-                    while ((currentLine = reader.ReadLine()) != null)
-                    {
-                        // Save line using current platform's newline format
-                        writer.Write(currentLine + Environment.NewLine);
-                    }
-                }
-            }
-
-            // Replace in arguments list
-            compilerArguments = compilerArguments.Replace("<module_name>", moduleNamespace);
-
-            // Process start info for the compiler
-            ProcessStartInfo compilerProcessStartInfo = new ProcessStartInfo();
-
-            // Set working directory (output file location)
-            compilerProcessStartInfo.WorkingDirectory = marshalPaths["framework"];
-
-            // Set compiler file name
-            compilerProcessStartInfo.FileName = compilerPath;
-
-            // Set compiler arguments
-            compilerProcessStartInfo.Arguments = compilerArguments;
-
-            // Use shell
-            compilerProcessStartInfo.UseShellExecute = true;
-
-            // No window
-            compilerProcessStartInfo.CreateNoWindow = true;
-
-            // Hidden style
-            compilerProcessStartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-
-            // Start compilation
-            Process compilerProcess = Process.Start(compilerProcessStartInfo);
-
-            // Wait until it finishes
-            compilerProcess.WaitForExit();
-
-            // TODO Use variable for file name. Remove file if needed
-            if (File.Exists(Path.Combine(Path.Combine(Path.Combine(marshalPaths["framework"], this.moduleTypeListBox.SelectedItem.ToString().Replace(" ", string.Empty)), (string)this.marshal.GetType().GetProperty("Game").GetValue(this.marshal, null)), moduleNamespace + ".dll")))
+            // Remove existing assembly file if needed
+            if (File.Exists(assemblyFilePath))
             {
                 // Remove
-                File.Delete(Path.Combine(Path.Combine(Path.Combine(marshalPaths["framework"], this.moduleTypeListBox.SelectedItem.ToString().Replace(" ", string.Empty)), (string)this.marshal.GetType().GetProperty("Game").GetValue(this.marshal, null)), moduleNamespace + ".dll"));
+                File.Delete(assemblyFilePath);
             }
 
-            // Move generated dll module to proper directory
-            File.Move(Path.Combine(marshalPaths["framework"], moduleNamespace + ".dll"), Path.Combine(Path.Combine(Path.Combine(marshalPaths["framework"], this.moduleTypeListBox.SelectedItem.ToString().Replace(" ", string.Empty)), (string)this.marshal.GetType().GetProperty("Game").GetValue(this.marshal, null)), moduleNamespace + ".dll"));    
+            /* Module compilation code */
+
+            // Code provider
+            CSharpCodeProvider cscp = new CSharpCodeProvider();
+
+            // Parameters
+            CompilerParameters cp = new CompilerParameters();
+
+            // System reference
+            cp.ReferencedAssemblies.Add("System.dll");
+
+            // System.Windows.Forms reference
+            cp.ReferencedAssemblies.Add("System.Windows.Forms.dll");
+
+            // System.Drawing reference
+            cp.ReferencedAssemblies.Add("System.Drawing.dll");
+
+            // ExcelApi reference
+            cp.ReferencedAssemblies.Add(Path.Combine(marshalPaths["framework"], "ExcelApi.dll"));
+
+            // OfficeApi reference
+            cp.ReferencedAssemblies.Add(Path.Combine(marshalPaths["framework"], "OfficeApi.dll"));
+
+            // VBIDEApi reference
+            cp.ReferencedAssemblies.Add(Path.Combine(marshalPaths["framework"], "VBIDEApi.dll"));
+
+            // NetOffice reference
+            cp.ReferencedAssemblies.Add(Path.Combine(marshalPaths["framework"], "NetOffice.dll"));
+
+            // Generate .dll module
+            cp.GenerateExecutable = false;
+
+            // Module file path
+            cp.OutputAssembly = assemblyFilePath;
+
+            // Generate as file
+            cp.GenerateInMemory = false;
+
+            // No debug info
+            cp.IncludeDebugInformation = false;
+
+            // No errors for warns 
+            cp.TreatWarningsAsErrors = false;
+
+            // Compile module.
+            CompilerResults cr = cscp.CompileAssemblyFromSource(cp, this.connectorSourceCode);
+
+            // Check for errors
+            if (cr.Errors.Count > 0)
+            {
+                // Error string
+                string errorString = string.Empty;
+
+                // Iterate errors
+                foreach (CompilerError ce in cr.Errors)
+                {
+                    // Add to error string
+                    errorString += ce.ToString();
+                }
+
+                // Advise user
+                    MessageBox.Show("Errors in Module Compilation:" + cr.Errors.Count + Environment.NewLine + "Debug information:" + Environment.MachineName + errorString, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                // Halt flow
+                return;
+            }
+
+            /* Sucessful compilation */
 
             // Copy renamed excel file to proper directory
             File.Copy(this.excelFile, Path.Combine(Path.Combine(Path.Combine(marshalPaths["framework"], this.moduleTypeListBox.SelectedItem.ToString().Replace(" ", string.Empty)), (string)this.marshal.GetType().GetProperty("Game").GetValue(this.marshal, null)), moduleNamespace + Path.GetExtension(this.excelFile)), true);
-
-            // Remove source code file
-            File.Delete(Path.Combine(marshalPaths["framework"], moduleNamespace + ".cs"));
 
             // Reload modules in framework
             this.marshal.GetType().GetMethod("ReloadModules").Invoke(this.marshal, null);

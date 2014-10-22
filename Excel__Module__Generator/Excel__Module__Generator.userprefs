@@ -1,8 +1,9 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Release" />
   <MonoDevelop.Ide.Workbench ActiveDocument="Excel__Module__Generator.cs">
     <Files>
-      <File FileName="Excel__Module__Generator.cs" Line="322" Column="13" />
+      <File FileName="Excel__Module__Generator.cs" Line="418" Column="53" />
+      <File FileName="Connector.cs" Line="40" Column="18" />
       <File FileName="Properties/AssemblyInfo.cs" Line="1" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>

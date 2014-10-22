@@ -36,14 +36,7 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Excel__Module__Generator.cs" />
+    <Compile Include="Connector.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <Folder Include="Resources\" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\Connector.cs">
-      <LogicalName>Connector.cs</LogicalName>
-    </EmbeddedResource>
-  </ItemGroup>
 </Project>
